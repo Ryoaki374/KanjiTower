@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#ffffff" />
+    <title>漢字タワー</title>
+    <meta
+      name="description"
+      content="好きな漢字が、その形のまま物体になる。字形を積み上げる小さな物理ゲーム。"
+    />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23cc4a32'/%3E%3Ctext x='32' y='47' text-anchor='middle' font-size='45' fill='%23fff' font-family='sans-serif'%3E山%3C/text%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <script defer src="lib/matter.min.js"></script>
+    <script defer src="lib/opentype.min.js"></script>
+    <script defer src="lib/earcut.min.js"></script>
+    <script defer src="geometry.js"></script>
+    <script defer src="game.js"></script>
+  </head>
+  <body>
+    <main class="game-shell">
+      <header class="masthead">
+        <div>
+          <h1>
+            漢字タワー
+          </h1>
+        </div>
+      </header>
+      <div class="mode-toolbar">
+        <span id="mode-label">遊び方を選ぼう</span>
+        <button id="change-mode" type="button" hidden>モードを変更</button>
+      </div>
+      <section class="scoreboard" aria-label="ゲーム記録">
+        <div>
+          <span>スコア</span>
+          <strong id="score">
+            0
+            <small>点</small>
+          </strong>
+        </div>
+        <div>
+          <span>積んだ文字</span>
+          <strong id="count">
+            0
+            <small>字</small>
+          </strong>
+        </div>
+        <div>
+          <span>最大高さ</span>
+          <strong id="height">
+            0
+            <small>px</small>
+          </strong>
+        </div>
+        <div class="misses">
+          <span>落ちた文字</span>
+          <strong id="lost">
+            0
+            <small>/ 3</small>
+          </strong>
+        </div>
+      </section>
+      <section class="stage" aria-label="漢字の積み上げ画面">
+        <section id="mode-select" class="mode-select" aria-labelledby="mode-title">
+          <h2 id="mode-title">モードを選択</h2>
+          <div class="mode-card">
+            <h3>スコアモード</h3>
+            <fieldset class="score-rules">
+              <legend class="visually-hidden">スコアモードのルール</legend>
+              <label>
+                <input type="radio" name="score-rule" value="attack" checked />
+                スコアアタック
+              </label>
+              <label>
+                <input type="radio" name="score-rule" value="practice" />
+                練習 / ミス無制限
+              </label>
+            </fieldset>
+            <button id="start-score" type="button" disabled>
+              開始
+              <span>→</span>
+            </button>
+          </div>
+          <div class="mode-card rush-card">
+            <h3>ドーパミンモード</h3>
+            <button id="start-dopamine" type="button" disabled>
+              開始
+              <span>→</span>
+            </button>
+          </div>
+          <p id="mode-loading" role="status">フォントを読み込み中…</p>
+        </section>
+        <div class="stage-top">
+          <span id="phase">フォントを読み込み中</span>
+          <label class="debug-toggle">
+            <input id="debug" type="checkbox" />
+            当たり判定
+          </label>
+        </div>
+        <canvas
+          id="game"
+          width="480"
+          height="580"
+          tabindex="0"
+          aria-label="漢字タワー。左右キーで移動、QとEで回転、Spaceで落下。"
+        ></canvas>
+        <div id="empty" class="empty"><h2>漢字を入力してください</h2></div>
+        <div id="game-over" class="game-over" hidden>
+          <h2 id="result-title">ゲーム終了</h2>
+          <p id="result"></p>
+          <button id="retry" type="button">
+            もう一度
+            <span>↻</span>
+          </button>
+        </div>
+        <div id="countdown" class="countdown" hidden aria-live="polite"></div>
+        <div id="stack-feedback" class="stack-feedback" hidden aria-live="polite"></div>
+        <div class="stage-bottom">
+          
+          <span id="active-label">待機中</span>
+        </div>
+      </section>
+      <section id="rush-panel" class="rush-panel" hidden aria-label="自動落下の状況">
+        <div class="rush-heading">
+          <strong id="speed-level">SPEED 01</strong>
+          <span id="drop-time">準備中</span>
+        </div>
+        <div class="drop-track"><div id="drop-progress"></div></div>
+        <div class="next-row">
+          <span>NEXT</span>
+          <div id="next-characters"></div>
+        </div>
+      </section>
+      <section id="input-panel" class="input-panel" aria-label="漢字の生成" hidden>
+        <form id="spawn-form" novalidate>
+          <label for="character">次に積む一字</label>
+          <div class="input-row">
+            <input
+              id="character"
+              type="text"
+              value="山"
+              autocomplete="off"
+              spellcheck="false"
+              aria-describedby="message"
+              aria-label="次に積む漢字1文字"
+            />
+            <button id="spawn" type="submit" disabled>
+              生成する
+              <span>↓</span>
+            </button>
+          </div>
+        </form>
+        <div class="suggestions">
+          <button type="button" data-char="山">山</button>
+          <button type="button" data-char="人">人</button>
+          <button type="button" data-char="口">口</button>
+          <button type="button" data-char="川">川</button>
+          <button type="button" data-char="凹">凹</button>
+          <button type="button" data-char="凸">凸</button>
+          <button type="button" data-char="鬱">鬱</button>
+        </div>
+        <p id="message" role="status" aria-live="polite">
+          フォントの読み込み後に遊べます。
+        </p>
+        <p id="used-characters" class="used-characters">使用済み：なし</p>
+      </section>
+      <footer>
+        <div class="keys">
+          <span>
+            <kbd>←</kbd>
+            <kbd>→</kbd>
+            /
+            <kbd>A</kbd>
+            <kbd>D</kbd>
+            移動
+          </span>
+          <span>
+            <kbd>Q</kbd>
+            <kbd>E</kbd>
+            回転
+          </span>
+          <span>
+            <kbd>Space</kbd>
+            落下
+          </span>
+        </div>
+        <button id="restart" class="restart" type="button" disabled>↻ リスタート</button>
+      </footer>
+    </main>
+  </body>
+</html>
