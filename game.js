@@ -61,6 +61,46 @@ const RUSH = Object.freeze({
   const context = canvas.getContext('2d');
   const pressedKeys = new Set();
   const geometryCache = new Map();
+  let gesture = null;
+
+  function clearControls() {
+    pressedKeys.clear();
+    gesture = null;
+  }
+
+  function beginGesture(event) {
+    if (event.pointerType === 'mouse' || gesture || !active || active.touched || gameOver) return;
+    event.preventDefault();
+    const bounds = canvas.getBoundingClientRect();
+    gesture = {
+      pointerId: event.pointerId, bodyId: active.body.id,
+      startX: event.clientX, startY: event.clientY, lastX: event.clientX,
+      startedAt: performance.now(), width: bounds.width,
+      direction: event.clientX < bounds.left + bounds.width / 2 ? -1 : 1,
+      rotating: false, pendingAngle: 0,
+    };
+    canvas.setPointerCapture(event.pointerId);
+    canvas.focus({ preventScroll: true });
+  }
+
+  function moveGesture(event) {
+    if (!gesture || event.pointerId !== gesture.pointerId) return;
+    event.preventDefault();
+    if (!active || active.touched || gameOver || active.body.id !== gesture.bodyId) {
+      gesture = null;
+      return;
+    }
+    // 指を置いたままなら移動、なぞり始めたら回転に切り替える。
+    if (Math.hypot(event.clientX - gesture.startX, event.clientY - gesture.startY) > 10)
+      gesture.rotating = true;
+    if (gesture.rotating)
+      gesture.pendingAngle += (event.clientX - gesture.lastX) / gesture.width * Math.PI * 2;
+    gesture.lastX = event.clientX;
+  }
+
+  function endGesture(event) {
+    if (gesture?.pointerId === event.pointerId) gesture = null;
+  }
 
   // 落ちた文字も使用済みに残す。リスタートしたときだけ解除する。
   const usedCharacters = new Set();
@@ -202,7 +242,7 @@ const RUSH = Object.freeze({
 
   function finishGame(title, explanation) {
     gameOver = true;
-    pressedKeys.clear();
+    clearControls();
     nextDropAt = Infinity;
     getElement('countdown').hidden = true;
     getElement('stack-feedback').hidden = true;
@@ -269,7 +309,7 @@ const RUSH = Object.freeze({
   }
 
   function restart() {
-    pressedKeys.clear();
+    clearControls();
     usedCharacters.clear();
     recordsByBodyId.clear();
     nextCharacters = [];
@@ -344,7 +384,7 @@ const RUSH = Object.freeze({
           if (firstContact && record === active) {
             // 接触した瞬間に操作を終える。跳ね返って離れても再開しない。
             // 速度や位置は固定せず、その後の滑り・転がりは物理演算に任せる。
-            pressedKeys.clear();
+            clearControls();
             getElement('active-label').textContent =
               '操作終了「' + record.character + '」';
             setPhase('接触 — 操作終了');
@@ -400,7 +440,7 @@ const RUSH = Object.freeze({
     getElement('empty').hidden = true;
     getElement('spawn').disabled = true;
     getElement('active-label').textContent = '操作中「' + character + '」';
-    pressedKeys.clear();
+    clearControls();
   }
 
   function spawnCharacter(value) {
@@ -473,10 +513,20 @@ const RUSH = Object.freeze({
   function updateActiveBody(deltaMs) {
     if (!active || active.touched || gameOver) return;
     const body = active.body;
-    const direction =
+    let direction =
       Number(pressedKeys.has('ArrowRight') || pressedKeys.has('KeyD')) -
       Number(pressedKeys.has('ArrowLeft') || pressedKeys.has('KeyA'));
-    const rotation = Number(pressedKeys.has('KeyE')) - Number(pressedKeys.has('KeyQ'));
+    let rotation = Number(pressedKeys.has('KeyE')) - Number(pressedKeys.has('KeyQ'));
+    if (gesture && gesture.bodyId === body.id) {
+      if (gesture.rotating) {
+        const turn = Math.max(-0.08, Math.min(0.08, gesture.pendingAngle));
+        gesture.pendingAngle -= turn;
+        rotation = turn / CONFIG.rotationSpeed;
+        Body.setAngularVelocity(body, turn);
+      } else if (performance.now() - gesture.startedAt >= 180) {
+        direction = gesture.direction;
+      }
+    }
     if (direction || rotation) Sleeping.set(body, false);
     // 座標を直接動かさず、速度を変えて衝突判定を通す。
     if (direction)
@@ -529,7 +579,7 @@ const RUSH = Object.freeze({
       record.settled = true;
       if (record === active) {
         active = null;
-        pressedKeys.clear();
+        clearControls();
         getElement('spawn').disabled = mode !== 'score';
         getElement('active-label').textContent =
           mode === 'score' ? '入力待ち' : '次の一字へ';
@@ -564,7 +614,7 @@ const RUSH = Object.freeze({
       lost++;
       if (active === record) {
         active = null;
-        pressedKeys.clear();
+        clearControls();
         getElement('spawn').disabled = mode !== 'score';
         getElement('active-label').textContent = '入力待ち';
       }
@@ -748,6 +798,11 @@ const RUSH = Object.freeze({
   }
 
   function bindInputEvents() {
+    canvas.addEventListener('pointerdown', beginGesture);
+    canvas.addEventListener('pointermove', moveGesture);
+    canvas.addEventListener('pointerup', endGesture);
+    canvas.addEventListener('pointercancel', endGesture);
+    canvas.addEventListener('lostpointercapture', endGesture);
     getElement('start-score').addEventListener('click', () => startMode('score'));
     getElement('start-dopamine').addEventListener('click', () => startMode('dopamine'));
     getElement('change-mode').addEventListener('click', showModeMenu);
@@ -795,7 +850,7 @@ const RUSH = Object.freeze({
     window.addEventListener('keyup', (event) => pressedKeys.delete(event.code));
     window.addEventListener('blur', () => pressedKeys.clear());
     document.addEventListener('visibilitychange', () => {
-      pressedKeys.clear();
+      clearControls();
       accumulator = 0;
       lastFrameTime = 0;
     });
@@ -868,3 +923,4 @@ const RUSH = Object.freeze({
   bindInputEvents();
   init();
 })();
+

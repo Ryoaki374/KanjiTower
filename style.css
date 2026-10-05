@@ -552,3 +552,20 @@ body[data-mode='dopamine'] .stage {
 #mode-loading:empty {
   display: none;
 }
+
+/* ゲーム領域だけブラウザーのスクロールとジェスチャーを止める。 */
+.stage canvas {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.touch-help { display: none; }
+@media (pointer: coarse) {
+  .keys { display: none; }
+  .touch-help { display: block; margin: 0; font-size: 16px; }
+  .mode-toolbar { gap: 12px; flex-wrap: wrap; }
+  .stage-top { font-size: 13px; gap: 8px; }
+  .scoreboard > div { padding-left: 8px; }
+  .scoreboard span { font-size: 14px; }
+  footer { flex-wrap: wrap; }
+}
