@@ -207,8 +207,7 @@ const RUSH = Object.freeze({
       mode === 'score' &&
       document.querySelector('[name="score-rule"]:checked').value === 'practice';
     restart();
-    if (mode === 'dopamine') canvas.focus({ preventScroll: true });
-    else getElement('character').focus({ preventScroll: true });
+    canvas.focus({ preventScroll: true });
   }
 
   function showModeMenu() {
@@ -248,7 +247,7 @@ const RUSH = Object.freeze({
     gameOver = true;
     clearControls();
     nextDropAt = Infinity;
-    getElement('countdown').hidden = true;
+    getElement('instructions').hidden = true;
     getElement('stack-feedback').hidden = true;
     getElement('spawn').disabled = true;
     getElement('game-over').hidden = false;
@@ -262,14 +261,7 @@ const RUSH = Object.freeze({
 
   function updateAutomaticDrops() {
     if (mode !== 'dopamine' || gameOver) return;
-    if (spawnedCount === 0 && simulationTime < nextDropAt) {
-      getElement('countdown').hidden = false;
-      getElement('countdown').textContent = String(
-        Math.ceil((nextDropAt - simulationTime) / 1000),
-      );
-      return;
-    }
-    getElement('countdown').hidden = true;
+
     if (simulationTime < nextDropAt) return;
 
     // デモの負荷上限。最後の字の着地を待ってからクリアにする。
@@ -321,8 +313,7 @@ const RUSH = Object.freeze({
     dropIntervalMs = RUSH.initialIntervalMs;
     updateModeDisplay();
     getElement('stack-feedback').hidden = true;
-    getElement('countdown').hidden = mode !== 'dopamine';
-    getElement('countdown').textContent = '3';
+
     if (mode === 'dopamine') refillQueue();
     updateUsedCharacters();
     if (engine) {
@@ -370,6 +361,7 @@ const RUSH = Object.freeze({
       // リトライボタンにフォーカスが残ると、入力保護がゲームキーも遮断してしまう。
       canvas.focus({ preventScroll: true });
     }
+    updateInstructions();
     if (font) message('漢字を1文字入力して、生成してください。');
   }
 
@@ -401,11 +393,7 @@ const RUSH = Object.freeze({
       geometry = GlyphGeometry.createGlyphGeometry(font, character, CONFIG);
       geometryCache.set(character, geometry);
     }
-    const top = characters.reduce(
-      (height, record) => Math.min(height, record.body.bounds.min.y),
-      CONFIG.groundY,
-    );
-    cameraY = Math.min(0, top - (mobileLayout ? CONFIG.height - 180 : 200));
+    updateCamera();
     const horizontalOffset = automatic ? (Math.random() - 0.5) * 65 : 0;
     const body = GlyphGeometry.glyphToMatterBody(
       geometry,
@@ -443,7 +431,7 @@ const RUSH = Object.freeze({
   }
 
   function spawnCharacter(value) {
-    if (mode !== 'score') return false;
+    if (mode !== 'score' || simulationTime < RUSH.countdownMs) return false;
     if (!font) {
       message('フォントを読み込み中です。', true);
       return false;
@@ -643,6 +631,7 @@ const RUSH = Object.freeze({
   function step(deltaMs) {
     if (!mode || gameOver) return;
     simulationTime += deltaMs;
+    updateInstructions();
     updateAutomaticDrops();
     if (gameOver) return;
     engine.gravity.y =
@@ -722,6 +711,25 @@ const RUSH = Object.freeze({
     );
   }
 
+  function updateCamera() {
+    const top = characters.reduce(
+      (height, record) => Math.min(height, record.body.bounds.min.y),
+      CONFIG.groundY,
+    );
+    // 上端からはみ出したときだけ、次の一字を置く余白を作る。
+    // タワーが低くなっても表示位置を戻さず、揺れによる往復を防ぐ。
+    if (top < cameraY) cameraY = top - 160;
+  }
+
+  function updateInstructions() {
+    const visible = !!mode && !gameOver && simulationTime < RUSH.countdownMs;
+    getElement('instructions').hidden = !visible;
+    getElement('instruction-time').textContent = visible
+      ? String(Math.ceil((RUSH.countdownMs - simulationTime) / 1000)) : '';
+    if (mode === 'score' && !active && !gameOver)
+      getElement('spawn').disabled = !font || visible;
+  }
+
   function renderScene() {
     const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
     if (canvas.width !== Math.round(CONFIG.width * pixelRatio) ||
@@ -775,13 +783,7 @@ const RUSH = Object.freeze({
       step(CONFIG.fixedDelta);
       accumulator -= CONFIG.fixedDelta;
     }
-    if (!active && !gameOver) {
-      const top = characters.reduce(
-        (v, characterRecord) => Math.min(v, characterRecord.body.bounds.min.y),
-        CONFIG.groundY,
-      );
-      cameraY += (Math.min(0, top - (mobileLayout ? CONFIG.height - 180 : 160)) - cameraY) * 0.08;
-    }
+    if (!gameOver) updateCamera();
     updateScore();
     updateRushDisplay();
     renderScene();

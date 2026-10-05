@@ -581,3 +581,19 @@ body[data-mode='dopamine'] .stage {
   body:not([data-mode="menu"]) .scoreboard strong { font-size: 21px; margin-top: 0; }
   body:not([data-mode="menu"]) .scoreboard small { font-size: 11px; margin-left: 3px; }
 }
+
+.instructions { position: absolute; inset: 0; z-index: 3; background: #fffffff5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; text-align: center; }
+.instructions h2 { margin: 0; font-size: 24px; }
+.instruction-touch { display: none; }
+.instruction-keyboard p { margin: 16px 0; font-size: 20px; }
+.instruction-keyboard kbd { font-size: 22px; padding: 6px 12px; }
+.gesture-demo { margin: 16px 0; }
+.gesture-demo svg { width: 58px; height: 65px; }
+.gesture-demo strong { display: block; font-size: 17px; margin-top: 8px; }
+.swipe-hand { animation: swipe-demo 1s ease-in-out infinite alternate; }
+.hold-hand { animation: hold-demo 1s ease-in-out infinite alternate; }
+#instruction-time { font-size: 28px; font-weight: 700; }
+@keyframes swipe-demo { from { transform: translateX(-28px) rotate(-12deg); } to { transform: translateX(28px) rotate(12deg); } }
+@keyframes hold-demo { from { opacity: .55; } to { opacity: 1; } }
+@media (pointer: coarse) { .instruction-touch { display: block; } .instruction-keyboard { display: none; } }
+@media (prefers-reduced-motion: reduce) { .swipe-hand, .hold-hand { animation: none; } }

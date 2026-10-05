@@ -49,7 +49,7 @@ let source = fs.readFileSync(path.join(root, 'game.js'), 'utf8');
 source = source.replace('  init();', `
   window.testGame = {
     initialize: loadFont, startMode, createCharacter, step,
-    updateActiveBody, dropActive, beginGesture, moveGesture, endGesture,
+    updateActiveBody, dropActive, beginGesture, moveGesture, endGesture, updateCamera, spawnCharacter,
     holdGesture: () => { gesture.startedAt -= 200; },
     pressedKeys,
     activeRecord: () => active,
@@ -67,6 +67,28 @@ vm.runInContext(source, sandbox);
 (async () => {
   const game = sandbox.testGame;
   await game.initialize();
+  for (const mode of ['score', 'dopamine']) {
+    game.startMode(mode);
+    assert.equal(element('instructions').hidden, false, '開始時に操作説明');
+    assert.equal(game.spawnCharacter('山'), false, '説明中は生成しない');
+    for (let i = 0; i < 350; i++) game.step(1000 / 120);
+    assert.equal(element('instructions').hidden, false, '約3秒間説明する');
+    for (let i = 0; i < 12; i++) game.step(1000 / 120);
+    assert.equal(element('instructions').hidden, true, '説明後にプレー開始');
+    game.startMode(mode);
+    game.createCharacter('山');
+    const body = game.activeRecord().body;
+    Matter.Body.translate(body, { x: 0, y: 20 - body.bounds.min.y });
+    game.updateCamera();
+    assert.equal(sandbox.KanjiTower.getState().cameraY, 0, '上端内なら固定');
+    Matter.Body.translate(body, { x: 0, y: -21 });
+    game.updateCamera();
+    const scrolled = sandbox.KanjiTower.getState().cameraY;
+    assert(scrolled < 0, '上端を越えたらスクロール');
+    Matter.Body.translate(body, { x: 0, y: 50 });
+    game.updateCamera();
+    assert.equal(sandbox.KanjiTower.getState().cameraY, scrolled, '収まった後は固定');
+  }
   const config = sandbox.KanjiTower.config;
   assert.equal(config.gravity, 0.75, '重力を変更しない');
   assert.equal(config.maxFallSpeed, 7, '落下速度の上限を変更しない');
@@ -162,4 +184,3 @@ vm.runInContext(source, sandbox);
   console.log('PASS difficult queue:', sequence.join(' '));
   console.log('PASS all 15 difficult glyphs');
 })().catch(error => { console.error(error); process.exitCode = 1; });
-

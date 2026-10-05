@@ -115,7 +115,19 @@
             <span>↻</span>
           </button>
         </div>
-        <div id="countdown" class="countdown" hidden aria-live="polite"></div>
+        <section id="instructions" class="instructions" hidden aria-label="操作方法">
+          <h2>操作方法</h2>
+          <div class="instruction-touch">
+            <div class="gesture-demo"><div class="swipe-hand"><svg viewBox="0 0 100 110" aria-hidden="true"><path d="M34 61V23a7 7 0 0 1 14 0v28-9a7 7 0 0 1 14 0v9-5a7 7 0 0 1 14 0v10-3a7 7 0 0 1 14 0v24c0 18-11 27-28 27H51c-9 0-15-5-21-13L13 68c-6-9 4-17 11-10l10 10Z" fill="#fff" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/></svg></div><strong>左右スワイプで回転</strong></div>
+            <div class="gesture-demo"><div class="hold-hand"><svg viewBox="0 0 100 110" aria-hidden="true"><path d="M34 61V23a7 7 0 0 1 14 0v28-9a7 7 0 0 1 14 0v9-5a7 7 0 0 1 14 0v10-3a7 7 0 0 1 14 0v24c0 18-11 27-28 27H51c-9 0-15-5-21-13L13 68c-6-9 4-17 11-10l10 10Z" fill="#fff" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/></svg></div><strong>画面の左右を長押しで移動</strong></div>
+          </div>
+          <div class="instruction-keyboard">
+            <p><kbd>←</kbd> <kbd>→</kbd> 移動</p>
+            <p><kbd>Q</kbd> <kbd>E</kbd> 回転</p>
+            <p><kbd>Space</kbd> 落下</p>
+          </div>
+          <span id="instruction-time" aria-live="off">3</span>
+        </section>
         <div id="stack-feedback" class="stack-feedback" hidden aria-live="polite"></div>
         <div class="stage-bottom">
           
