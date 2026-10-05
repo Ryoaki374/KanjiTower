@@ -569,3 +569,15 @@ body[data-mode='dopamine'] .stage {
   .scoreboard span { font-size: 14px; }
   footer { flex-wrap: wrap; }
 }
+
+.stage-top { justify-content: flex-end; }
+@media (max-width: 600px) and (pointer: coarse) {
+  body:not([data-mode="menu"]) .game-shell { margin-top: 8px; }
+  body:not([data-mode="menu"]) h1 { font-size: 20px; }
+  body:not([data-mode="menu"]) .mode-toolbar { margin: 6px 0; font-size: 12px; }
+  body:not([data-mode="menu"]) .mode-toolbar button { font-size: 12px; }
+  body:not([data-mode="menu"]) .scoreboard { padding: 6px 0; margin-bottom: 6px; }
+  body:not([data-mode="menu"]) .scoreboard span { font-size: 11px; }
+  body:not([data-mode="menu"]) .scoreboard strong { font-size: 21px; margin-top: 0; }
+  body:not([data-mode="menu"]) .scoreboard small { font-size: 11px; margin-left: 3px; }
+}

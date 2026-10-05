@@ -26,6 +26,8 @@ const sandbox = {
   earcut: require(path.join(root, 'lib/earcut.min.js')),
   console,
   performance,
+  innerWidth: 390, innerHeight: 844,
+  matchMedia: () => ({ matches: process.env.TEST_MOBILE === '1' }),
   requestAnimationFrame() {},
   fetch: async () => ({ ok: true, arrayBuffer: async () => fontBytes.buffer.slice(fontBytes.byteOffset, fontBytes.byteOffset + fontBytes.byteLength) }),
   document: {
@@ -65,6 +67,14 @@ vm.runInContext(source, sandbox);
 (async () => {
   const game = sandbox.testGame;
   await game.initialize();
+  const config = sandbox.KanjiTower.config;
+  assert.equal(config.gravity, 0.75, '重力を変更しない');
+  assert.equal(config.maxFallSpeed, 7, '落下速度の上限を変更しない');
+  assert.equal(config.height, process.env.TEST_MOBILE === '1' ? 910 : 580);
+  game.startMode('score');
+  game.createCharacter('山');
+  const fallDistance = config.groundY - game.activeRecord().body.position.y;
+  assert(fallDistance >= (process.env.TEST_MOBILE === '1' ? 700 : 400), '画面に合わせた落下距離');
   for (const mode of ['score', 'dopamine']) {
     game.startMode(mode);
     game.createCharacter('山', mode === 'dopamine');
@@ -94,7 +104,7 @@ vm.runInContext(source, sandbox);
     assert.equal(game.activeRecord().body.velocity.x, 0, 'リセット後に長押しを持ち越さない');
     for (const supportType of ['floor', 'glyph']) {
       game.startMode(mode);
-      let contactHeight = 512;
+      let contactHeight = sandbox.KanjiTower.config.groundY;
       if (supportType === 'glyph') {
         game.createCharacter('一', mode === 'dopamine');
         const support = game.activeRecord().body;
@@ -152,3 +162,4 @@ vm.runInContext(source, sandbox);
   console.log('PASS difficult queue:', sequence.join(' '));
   console.log('PASS all 15 difficult glyphs');
 })().catch(error => { console.error(error); process.exitCode = 1; });
+

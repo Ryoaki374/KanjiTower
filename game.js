@@ -1,5 +1,12 @@
 'use strict';
 
+// スマホは同じ物理速度のまま、縦の落下距離を広げる。
+const mobileLayout = window.matchMedia?.('(max-width: 600px) and (pointer: coarse)').matches ?? false;
+const playHeight = mobileLayout
+  ? Math.max(760, Math.min(1100, Math.round((window.innerHeight - 150) * 480 / Math.max(280, window.innerWidth - 24))))
+  : 580;
+const extraFallTime = (playHeight - 580) / 9 * (1000 / 60);
+
 // 速度はMatter.jsの60Hz換算値。シミュレーション自体は120Hzで更新する。
 const CONFIG = Object.freeze({
   gravity: 0.75,
@@ -26,8 +33,8 @@ const CONFIG = Object.freeze({
   maxCharacters: 60,
   maxMisses: 3,
   width: 480,
-  height: 580,
-  groundY: 512,
+  height: playHeight,
+  groundY: playHeight - 68,
   platformWidth: 330,
 });
 
@@ -35,8 +42,8 @@ const CONFIG = Object.freeze({
 // タブを離れている間に次の文字が溜まることはない。
 const RUSH = Object.freeze({
   countdownMs: 3000,
-  initialIntervalMs: 2200,
-  minimumIntervalMs: 1050,
+  initialIntervalMs: 2200 + extraFallTime,
+  minimumIntervalMs: 1050 + extraFallTime,
   intervalReductionMs: 140,
   charactersPerLevel: 5,
   nextAfterLandingMs: 200,
@@ -137,9 +144,6 @@ const RUSH = Object.freeze({
     getElement('message').classList.toggle('error', error);
   }
 
-  function setPhase(text) {
-    getElement('phase').textContent = text;
-  }
 
   function updateUsedCharacters() {
     getElement('used-characters').textContent = usedCharacters.size
@@ -252,7 +256,6 @@ const RUSH = Object.freeze({
     const count = characters.filter((record) => record.settled).length;
     getElement('result').textContent =
       explanation + ' / ' + count + ' 字 / 最大 ' + Math.round(peakHeight) + ' px';
-    setPhase('終了 — もう一度挑戦しよう');
     getElement('active-label').textContent = '終了';
     message(explanation);
   }
@@ -284,7 +287,6 @@ const RUSH = Object.freeze({
       refillQueue();
       dropIntervalMs = getRushInterval();
       nextDropAt = simulationTime + dropIntervalMs;
-      setPhase('赤い一字を操作 / Spaceで加速');
     } catch (error) {
       console.error(error);
       finishGame('生成を中断しました', error.message);
@@ -360,16 +362,14 @@ const RUSH = Object.freeze({
     getElement('game-over').hidden = true;
     getElement('empty').hidden = mode !== 'score';
     getElement('spawn').disabled = !font || mode !== 'score';
-    setPhase(font ? '最初の一字をどうぞ' : 'フォントを読み込み中');
     getElement('active-label').textContent = '待機中';
     Events.on(engine, 'collisionStart', onContact);
     Events.on(engine, 'collisionActive', onContact);
     updateScore();
     if (mode === 'dopamine') {
-      setPhase('3秒後にスタート / ← → と Q E で操作');
       // リトライボタンにフォーカスが残ると、入力保護がゲームキーも遮断してしまう。
       canvas.focus({ preventScroll: true });
-    } else if (!mode) setPhase('遊び方を選んでください');
+    }
     if (font) message('漢字を1文字入力して、生成してください。');
   }
 
@@ -387,7 +387,6 @@ const RUSH = Object.freeze({
             clearControls();
             getElement('active-label').textContent =
               '操作終了「' + record.character + '」';
-            setPhase('接触 — 操作終了');
             if (mode === 'score')
               message('接触したので操作終了。動きが落ち着くと次の一字へ。');
           }
@@ -406,7 +405,7 @@ const RUSH = Object.freeze({
       (height, record) => Math.min(height, record.body.bounds.min.y),
       CONFIG.groundY,
     );
-    cameraY = Math.min(0, top - 200);
+    cameraY = Math.min(0, top - (mobileLayout ? CONFIG.height - 180 : 200));
     const horizontalOffset = automatic ? (Math.random() - 0.5) * 65 : 0;
     const body = GlyphGeometry.glyphToMatterBody(
       geometry,
@@ -488,7 +487,6 @@ const RUSH = Object.freeze({
     }
     try {
       createCharacter(inputCharacters[0]);
-      setPhase('位置を決めて、Spaceで落下');
       message('← → で移動 / Q E で回転 / Space で落下');
       canvas.focus({ preventScroll: true });
       return true;
@@ -507,7 +505,6 @@ const RUSH = Object.freeze({
       x: 0,
       y: mode === 'dopamine' ? RUSH.maxFallSpeed : CONFIG.maxFallSpeed,
     });
-    setPhase('落下中');
   }
 
   function updateActiveBody(deltaMs) {
@@ -550,11 +547,6 @@ const RUSH = Object.freeze({
         y: Math.min(body.velocity.y, CONFIG.aimFallSpeed),
       });
     }
-    if (
-      mode === 'score' &&
-      (simulationTime - active.spawnTime >= CONFIG.aimDuration || active.fastDrop)
-    )
-      setPhase('落下中 — 着地すると次の一字へ');
   }
 
   function updateSettledCharacters(deltaMs) {
@@ -584,7 +576,6 @@ const RUSH = Object.freeze({
         getElement('active-label').textContent =
           mode === 'score' ? '入力待ち' : '次の一字へ';
         if (mode === 'score') {
-          setPhase('積めました。次の一字をどうぞ');
           message('着地しました。次の漢字を入力して生成してください。');
         } else {
           // 早く積めたら待ち時間を短縮。未着地でも期限が来たら次の字へ進む。
@@ -624,7 +615,6 @@ const RUSH = Object.freeze({
           ? '落ちても大丈夫。形を試して、もう一字。'
           : '文字が台の外へ落ちました。残り ' + remaining + ' 回。',
       );
-      setPhase('次の一字をどうぞ');
     }
     if (!gameOver && lost >= getMissLimit()) {
       finishGame(
@@ -734,7 +724,8 @@ const RUSH = Object.freeze({
 
   function renderScene() {
     const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
-    if (canvas.width !== Math.round(CONFIG.width * pixelRatio)) {
+    if (canvas.width !== Math.round(CONFIG.width * pixelRatio) ||
+        canvas.height !== Math.round(CONFIG.height * pixelRatio)) {
       canvas.width = Math.round(CONFIG.width * pixelRatio);
       canvas.height = Math.round(CONFIG.height * pixelRatio);
     }
@@ -789,7 +780,7 @@ const RUSH = Object.freeze({
         (v, characterRecord) => Math.min(v, characterRecord.body.bounds.min.y),
         CONFIG.groundY,
       );
-      cameraY += (Math.min(0, top - 160) - cameraY) * 0.08;
+      cameraY += (Math.min(0, top - (mobileLayout ? CONFIG.height - 180 : 160)) - cameraY) * 0.08;
     }
     updateScore();
     updateRushDisplay();
@@ -913,7 +904,6 @@ const RUSH = Object.freeze({
     } catch (error) {
       console.error(error);
       message(error.message + ' ページを再読み込みして再試行してください。', true);
-      setPhase('読み込みに失敗しました');
       getElement('mode-loading').textContent =
         error.message + ' 再読み込みしてください。';
       getElement('restart').disabled = true;
