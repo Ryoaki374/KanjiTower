@@ -623,3 +623,20 @@ body[data-mode='dopamine'] .stage {
 }
 @media (pointer: coarse) { .instruction-touch { display: block; } .instruction-keyboard { display: none; } }
 @media (prefers-reduced-motion: reduce) { .swipe-hand, .hold-hand, .hold-hand::before { animation: none; } }
+
+/* 選択画面はキャンバスの高さを引き継がず、内容に合わせる。 */
+body[data-mode="menu"] .mode-select { position: relative; inset: auto; justify-content: flex-start; }
+body[data-mode="menu"] .stage > :not(.mode-select) { display: none; }
+#spawn { flex-shrink: 0; white-space: nowrap; min-width: 124px; gap: 12px; padding: 0 16px; }
+body[data-mode="score"] .stage canvas { max-height: 400px; object-fit: contain; }
+@media (max-width: 600px) {
+  body[data-mode="score"] .stage canvas { max-height: min(400px, calc(100svh - 245px)); }
+  body[data-mode="score"] .input-panel { padding-top: 8px; }
+  body[data-mode="score"] form { position: sticky; bottom: 0; background: white; z-index: 5; padding: 6px 0; }
+  body[data-mode="score"] .suggestions { margin-top: 6px; }
+  body[data-mode="score"] .input-row { gap: 8px; }
+  #spawn { min-width: 116px; font-size: 15px; gap: 8px; padding: 0 12px; }
+  .instructions { gap: 8px; }
+  .gesture-demo { margin: 8px 0; }
+  .gesture-demo svg { height: 45px; }
+}

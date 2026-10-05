@@ -8,6 +8,7 @@ const playHeight = mobileLayout
 const extraFallTime = (playHeight - 580) / 9 * (1000 / 60);
 
 // 速度はMatter.jsの60Hz換算値。シミュレーション自体は120Hzで更新する。
+let scoreLayout = false;
 const CONFIG = Object.freeze({
   gravity: 0.75,
   friction: 0.85,
@@ -33,8 +34,8 @@ const CONFIG = Object.freeze({
   maxCharacters: 60,
   maxMisses: 3,
   width: 480,
-  height: playHeight,
-  groundY: playHeight - 68,
+  get height() { return scoreLayout ? 468 : playHeight; },
+  get groundY() { return scoreLayout ? 400 : playHeight - 68; },
   platformWidth: 330,
 });
 
@@ -303,6 +304,7 @@ const RUSH = Object.freeze({
   }
 
   function restart() {
+    scoreLayout = mode === 'score';
     clearControls();
     usedCharacters.clear();
     recordsByBodyId.clear();
@@ -712,6 +714,17 @@ const RUSH = Object.freeze({
   }
 
   function updateCamera() {
+    if (mode === 'score') {
+      const top = characters.reduce(
+        (height, record) => record.touched ? Math.min(height, record.body.bounds.min.y) : height,
+        CONFIG.groundY,
+      );
+      const height = CONFIG.groundY - top;
+      const nextThreshold = 380 - cameraY;
+      if (height >= nextThreshold)
+        cameraY -= (Math.floor((height - nextThreshold) / 150) + 1) * 150;
+      return;
+    }
     const top = characters.reduce(
       (height, record) => Math.min(height, record.body.bounds.min.y),
       CONFIG.groundY,
