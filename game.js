@@ -132,6 +132,9 @@ const RUSH = Object.freeze({
   let gameOver = false;
   let debug = false;
   let cameraY = 0;
+  let cameraTargetY = 0;
+  let cameraStartY = 0;
+  let cameraElapsed = 0;
   let simulationTime = 0;
   let lastFrameTime = 0;
   let accumulator = 0;
@@ -348,6 +351,9 @@ const RUSH = Object.freeze({
     lost = 0;
     peakHeight = 0;
     cameraY = 0;
+    cameraTargetY = 0;
+    cameraStartY = 0;
+    cameraElapsed = 0;
     simulationTime = 0;
     accumulator = 0;
     lastFrameTime = 0;
@@ -713,16 +719,26 @@ const RUSH = Object.freeze({
     );
   }
 
-  function updateCamera() {
+  function updateCamera(deltaMs = 0) {
     if (mode === 'score') {
       const top = characters.reduce(
         (height, record) => record.touched ? Math.min(height, record.body.bounds.min.y) : height,
         CONFIG.groundY,
       );
       const height = CONFIG.groundY - top;
-      const nextThreshold = 200 - cameraY;
-      if (height >= nextThreshold)
-        cameraY -= (Math.floor((height - nextThreshold) / 100) + 1) * 100;
+      // 判定には表示途中の位置ではなく、100px刻みの移動先を使う。
+      const nextThreshold = 300 - cameraTargetY;
+      if (height >= nextThreshold) {
+        cameraStartY = cameraY;
+        cameraTargetY -= (Math.floor((height - nextThreshold) / 100) + 1) * 100;
+        cameraElapsed = 0;
+      }
+      if (cameraY !== cameraTargetY) {
+        cameraElapsed = Math.min(400, cameraElapsed + deltaMs);
+        const progress = cameraElapsed / 400;
+        const eased = progress * progress * (3 - 2 * progress);
+        cameraY = cameraStartY + (cameraTargetY - cameraStartY) * eased;
+      }
       return;
     }
     const top = characters.reduce(
@@ -789,14 +805,15 @@ const RUSH = Object.freeze({
 
   function frame(time) {
     if (!lastFrameTime) lastFrameTime = time;
-    accumulator += Math.min(time - lastFrameTime, 80);
+    const frameDelta = Math.min(time - lastFrameTime, 80);
+    accumulator += frameDelta;
     lastFrameTime = time;
     if (document.hidden) accumulator = 0;
     while (accumulator >= CONFIG.fixedDelta) {
       step(CONFIG.fixedDelta);
       accumulator -= CONFIG.fixedDelta;
     }
-    if (!gameOver) updateCamera();
+    if (!gameOver && !document.hidden) updateCamera(frameDelta);
     updateScore();
     updateRushDisplay();
     renderScene();

@@ -78,16 +78,16 @@ vm.runInContext(source, sandbox);
     game.startMode(mode);
     game.createCharacter('山');
     const body = game.activeRecord().body;
-    Matter.Body.translate(body, { x: 0, y: (mode === 'score' ? sandbox.KanjiTower.config.groundY - 199 : 21) - body.bounds.min.y });
+    Matter.Body.translate(body, { x: 0, y: (mode === 'score' ? sandbox.KanjiTower.config.groundY - 299 : 21) - body.bounds.min.y });
     game.activeRecord().touched = true;
-    game.updateCamera();
+    game.updateCamera(400);
     assert.equal(sandbox.KanjiTower.getState().cameraY, 0, '上端内なら固定');
     Matter.Body.translate(body, { x: 0, y: -22 });
-    game.updateCamera();
+    game.updateCamera(400);
     const scrolled = sandbox.KanjiTower.getState().cameraY;
     assert(scrolled < 0, '上端を越えたらスクロール');
     Matter.Body.translate(body, { x: 0, y: 50 });
-    game.updateCamera();
+    game.updateCamera(400);
     assert.equal(sandbox.KanjiTower.getState().cameraY, scrolled, '収まった後は固定');
   }
   const config = sandbox.KanjiTower.config;
@@ -101,11 +101,25 @@ vm.runInContext(source, sandbox);
   assert.equal(fallDistance, 395, 'スコアモードの落下距離');
   game.activeRecord().touched = true;
   const scoreBody = game.activeRecord().body;
-  for (const [height, expected] of [[199, 0], [200, -100], [299, -100], [300, -200], [400, -300], [100, -300]]) {
+  for (const [height, expected] of [[199, 0], [200, 0], [299, 0], [300, -100], [399, -100], [400, -200], [500, -300], [100, -300]]) {
     Matter.Body.translate(scoreBody, { x: 0, y: config.groundY - height - scoreBody.bounds.min.y });
-    game.updateCamera();
-    assert.equal(sandbox.KanjiTower.getState().cameraY, expected, '200pxから100px刻みでスクロール');
+    game.updateCamera(400);
+    assert.equal(sandbox.KanjiTower.getState().cameraY, expected, '300pxから100px刻みでスクロール');
   }
+  game.startMode('score');
+  game.createCharacter('山');
+  game.activeRecord().touched = true;
+  const movingBody = game.activeRecord().body;
+  Matter.Body.translate(movingBody, { x: 0, y: config.groundY - 300 - movingBody.bounds.min.y });
+  game.updateCamera(0);
+  assert.equal(sandbox.KanjiTower.getState().cameraY, 0, '開始時に位置を飛ばさない');
+  game.updateCamera(100);
+  const intermediate = sandbox.KanjiTower.getState().cameraY;
+  assert(intermediate < 0 && intermediate > -100, 'スクロール途中の位置を描画');
+  game.updateCamera(300);
+  assert.equal(sandbox.KanjiTower.getState().cameraY, -100, '400msで100pxの移動を完了');
+  game.updateCamera(400);
+  assert.equal(sandbox.KanjiTower.getState().cameraY, -100, '同じ高さで繰り返し移動しない');
   for (const mode of ['score', 'dopamine']) {
     game.startMode(mode);
     game.createCharacter('山', mode === 'dopamine');
