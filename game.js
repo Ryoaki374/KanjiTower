@@ -34,8 +34,8 @@ const CONFIG = Object.freeze({
   maxCharacters: 60,
   maxMisses: 3,
   width: 480,
-  get height() { return scoreLayout ? 468 : playHeight; },
-  get groundY() { return scoreLayout ? 400 : playHeight - 68; },
+  get height() { return scoreLayout ? 548 : playHeight; },
+  get groundY() { return scoreLayout ? 480 : playHeight - 68; },
   platformWidth: 330,
 });
 
@@ -720,9 +720,9 @@ const RUSH = Object.freeze({
         CONFIG.groundY,
       );
       const height = CONFIG.groundY - top;
-      const nextThreshold = 380 - cameraY;
+      const nextThreshold = 200 - cameraY;
       if (height >= nextThreshold)
-        cameraY -= (Math.floor((height - nextThreshold) / 150) + 1) * 150;
+        cameraY -= (Math.floor((height - nextThreshold) / 100) + 1) * 100;
       return;
     }
     const top = characters.reduce(
@@ -759,8 +759,8 @@ const RUSH = Object.freeze({
     context.fillStyle = '#000000';
     context.strokeStyle = '#dce1d4';
     context.lineWidth = 0.7;
-    for (let y = CONFIG.groundY; y > cameraY; y -= 100) {
-      if (y > bottom || y < cameraY + 55) continue;
+    for (let y = CONFIG.groundY; y > cameraY; y -= (mode === 'score' ? 50 : 100)) {
+      if (y > bottom || y < cameraY + (mode === 'score' ? 20 : 55)) continue;
       context.beginPath();
       context.moveTo(14, y);
       context.lineTo(24, y);

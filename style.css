@@ -628,9 +628,9 @@ body[data-mode='dopamine'] .stage {
 body[data-mode="menu"] .mode-select { position: relative; inset: auto; justify-content: flex-start; }
 body[data-mode="menu"] .stage > :not(.mode-select) { display: none; }
 #spawn { flex-shrink: 0; white-space: nowrap; min-width: 124px; gap: 12px; padding: 0 16px; }
-body[data-mode="score"] .stage canvas { max-height: 400px; object-fit: contain; }
+body[data-mode="score"] .stage canvas { max-height: 450px; object-fit: contain; }
 @media (max-width: 600px) {
-  body[data-mode="score"] .stage canvas { max-height: min(400px, calc(100svh - 245px)); }
+  body[data-mode="score"] .stage canvas { max-height: min(450px, calc(100svh - 245px)); }
   body[data-mode="score"] .input-panel { padding-top: 8px; }
   body[data-mode="score"] form { position: sticky; bottom: 0; background: white; z-index: 5; padding: 6px 0; }
   body[data-mode="score"] .suggestions { margin-top: 6px; }
@@ -640,3 +640,5 @@ body[data-mode="score"] .stage canvas { max-height: 400px; object-fit: contain; 
   .gesture-demo { margin: 8px 0; }
   .gesture-demo svg { height: 45px; }
 }
+
+#spawn { display: block; text-align: center; }
