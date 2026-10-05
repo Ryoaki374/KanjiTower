@@ -591,9 +591,35 @@ body[data-mode='dopamine'] .stage {
 .gesture-demo svg { width: 58px; height: 65px; }
 .gesture-demo strong { display: block; font-size: 17px; margin-top: 8px; }
 .swipe-hand { animation: swipe-demo 1s ease-in-out infinite alternate; }
-.hold-hand { animation: hold-demo 1s ease-in-out infinite alternate; }
+.hold-hand {
+  position: relative;
+  animation: hold-demo 5s linear both;
+}
+.hold-hand::before {
+  content: '';
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  left: calc(50% - 17px);
+  top: 1px;
+  border: 3px solid var(--red);
+  border-radius: 50%;
+  animation: hold-pressure 5s linear both;
+}
 #instruction-time { font-size: 28px; font-weight: 700; }
 @keyframes swipe-demo { from { transform: translateX(-28px) rotate(-12deg); } to { transform: translateX(28px) rotate(12deg); } }
-@keyframes hold-demo { from { opacity: .55; } to { opacity: 1; } }
+/* 左で2秒、移動に0.5秒、右で2秒、最後に指を離す。 */
+@keyframes hold-demo {
+  0%, 40% { transform: translateX(-65px) scale(.9); }
+  44% { transform: translateX(-65px) scale(1); }
+  48% { transform: translateX(65px) scale(1); }
+  50%, 90% { transform: translateX(65px) scale(.9); }
+  100% { transform: translateX(65px) scale(1); }
+}
+@keyframes hold-pressure {
+  0%, 50% { opacity: .45; transform: scale(.7); }
+  40%, 90% { opacity: 1; transform: scale(1.35); }
+  41%, 49%, 91%, 100% { opacity: 0; }
+}
 @media (pointer: coarse) { .instruction-touch { display: block; } .instruction-keyboard { display: none; } }
-@media (prefers-reduced-motion: reduce) { .swipe-hand, .hold-hand { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .swipe-hand, .hold-hand, .hold-hand::before { animation: none; } }

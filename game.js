@@ -41,7 +41,7 @@ const CONFIG = Object.freeze({
 // 自動落下は実時間ではなくシミュレーション時間で予約する。
 // タブを離れている間に次の文字が溜まることはない。
 const RUSH = Object.freeze({
-  countdownMs: 3000,
+  countdownMs: 5000,
   initialIntervalMs: 2200 + extraFallTime,
   minimumIntervalMs: 1050 + extraFallTime,
   intervalReductionMs: 140,
